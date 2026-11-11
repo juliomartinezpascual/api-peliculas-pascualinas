@@ -17,6 +17,19 @@ const app = express()
 app.set('port', 5000)
 
 // middlewares
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin')
+    res.setHeader('Access-Control-Max-Age', '0')
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate')
+
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204)
+    }
+
+    next()
+})
 app.use(json())
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
 app.use('/api/v1/generos', generoRoutes);
