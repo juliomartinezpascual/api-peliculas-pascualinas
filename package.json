@@ -1,0 +1,25 @@
+{
+  "name": "back-end-peliculas",
+  "version": "1.0.0",
+  "description": "API REST Peliculas Pascualinas",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [
+    "peliculas",
+    "iu",
+    "pascual",
+    "bravo"
+  ],
+  "author": "Julio Martìnez",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0",
+    "mongoose": "^9.11.4",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
+  }
+}

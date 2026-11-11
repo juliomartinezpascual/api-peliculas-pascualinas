@@ -1,0 +1,265 @@
+================================================================================
+API REST - Películas Pascualinas
+Documentación para Frontend
+================================================================================
+
+Base URL:        http://localhost:5000
+Prefijo API:     /api/v1
+Swagger UI:      http://localhost:5000/api/docs
+Content-Type:    application/json
+Auth:            No requiere autenticación (por ahora)
+
+--------------------------------------------------------------------------------
+MODELO: Genero
+--------------------------------------------------------------------------------
+
+Campos de respuesta:
+  _id                 string (ObjectId de Mongo)
+  nombre              string (requerido, único, min 2 caracteres)
+  estado              boolean (default: true)
+  descripcion         string (opcional)
+  fechaCreacion       date
+  fechaActualizacion  date (opcional)
+
+Formato de error genérico:
+  {
+    "message": "texto del error"
+  }
+
+================================================================================
+MÓDULO: GÉNEROS
+Base path: /api/v1/generos
+================================================================================
+
+--------------------------------------------------------------------------------
+1) LISTAR GÉNEROS
+--------------------------------------------------------------------------------
+Método:  GET
+URL:     /api/v1/generos
+
+Request:
+  Sin body
+  Sin query params
+
+Response 200:
+  [
+    {
+      "_id": "65f1c2a9b8e4d12a34f56789",
+      "nombre": "Acción",
+      "estado": true,
+      "descripcion": "Películas de acción",
+      "fechaCreacion": "2026-03-11T12:00:00.000Z",
+      "fechaActualizacion": null
+    }
+  ]
+
+Response 500:
+  { "message": "Error general" }
+
+--------------------------------------------------------------------------------
+2) CONSULTAR GÉNERO POR ID
+--------------------------------------------------------------------------------
+Método:  GET
+URL:     /api/v1/generos/:id
+
+Params:
+  id  string  requerido  ObjectId del género
+
+Request:
+  Sin body
+
+Response 200:
+  {
+    "_id": "65f1c2a9b8e4d12a34f56789",
+    "nombre": "Acción",
+    "estado": true,
+    "descripcion": "Películas de acción",
+    "fechaCreacion": "2026-03-11T12:00:00.000Z",
+    "fechaActualizacion": null
+  }
+
+Response 400:
+  { "message": "Cast to ObjectId failed..." }
+
+Response 404:
+  { "message": "Género no encontrado" }
+
+Response 500:
+  { "message": "Error general" }
+
+--------------------------------------------------------------------------------
+3) CREAR GÉNERO
+--------------------------------------------------------------------------------
+Método:  POST
+URL:     /api/v1/generos/crear
+
+Body (JSON):
+  {
+    "nombre": "Acción",          // requerido, string, min 2, único
+    "estado": true,              // opcional, boolean (default true)
+    "descripcion": "Opcional"    // opcional, string
+  }
+
+Response 201:
+  {
+    "_id": "65f1c2a9b8e4d12a34f56789",
+    "nombre": "Acción",
+    "estado": true,
+    "descripcion": "Opcional",
+    "fechaCreacion": "2026-03-11T12:00:00.000Z",
+    "__v": 0
+  }
+
+Response 400:
+  { "message": "Ya existe este género" }
+  o mensaje de validación de Mongoose
+
+Response 500:
+  { "message": "Error general" }
+
+--------------------------------------------------------------------------------
+4) ACTUALIZAR GÉNERO
+--------------------------------------------------------------------------------
+Método:  PUT
+URL:     /api/v1/generos/:id
+
+Params:
+  id  string  requerido  ObjectId del género
+
+Body (JSON):
+  {
+    "nombre": "Acción actualizada",
+    "estado": true,
+    "descripcion": "Nueva descripción"
+  }
+
+Notas frontend:
+  - Se actualizan nombre, estado y descripcion
+  - El backend setea fechaActualizacion automáticamente
+
+Response 201:
+  {
+    "_id": "65f1c2a9b8e4d12a34f56789",
+    "nombre": "Acción actualizada",
+    "estado": true,
+    "descripcion": "Nueva descripción",
+    "fechaCreacion": "2026-03-11T12:00:00.000Z",
+    "fechaActualizacion": "2026-03-11T13:00:00.000Z"
+  }
+
+Response 400:
+  { "message": "Ya existe este género" }
+  o mensaje de validación / CastError
+
+Response 404:
+  { "message": "Género no encontrado" }
+
+Response 500:
+  { "message": "Error general" }
+
+--------------------------------------------------------------------------------
+5) HABILITAR / DESHABILITAR GÉNERO
+--------------------------------------------------------------------------------
+Método:  PATCH
+URL:     /api/v1/generos/estado/:id
+
+Params:
+  id  string  requerido  ObjectId del género
+
+Body (JSON):
+  {
+    "estado": true     // habilitar
+  }
+  o
+  {
+    "estado": false    // deshabilitar
+  }
+
+Importante:
+  - estado DEBE ser boolean (true/false), no string
+
+Response 200:
+  {
+    "_id": "65f1c2a9b8e4d12a34f56789",
+    "nombre": "Acción",
+    "estado": false,
+    "descripcion": "Películas de acción",
+    "fechaCreacion": "2026-03-11T12:00:00.000Z",
+    "fechaActualizacion": "2026-03-11T13:00:00.000Z"
+  }
+
+Response 400:
+  { "message": "El campo estado debe ser true o false" }
+  o CastError si el id es inválido
+
+Response 404:
+  { "message": "Género no encontrado" }
+
+Response 500:
+  { "message": "Error general" }
+
+--------------------------------------------------------------------------------
+6) BORRAR GÉNERO
+--------------------------------------------------------------------------------
+Método:  DELETE
+URL:     /api/v1/generos/:id
+
+Params:
+  id  string  requerido  ObjectId del género
+
+Request:
+  Sin body
+
+Response 204:
+  {
+    "message": "Género eliminado",
+    "genero": {
+      "_id": "65f1c2a9b8e4d12a34f56789",
+      "nombre": "Acción",
+      "estado": true,
+      "descripcion": "Películas de acción",
+      "fechaCreacion": "2026-03-11T12:00:00.000Z"
+    }
+  }
+
+Nota frontend:
+  - El status es 204. Algunos clientes HTTP no exponen body en 204.
+    Si necesitas el objeto borrado en UI, valida el manejo del response.
+
+Response 400:
+  { "message": "Cast to ObjectId failed..." }
+
+Response 404:
+  { "message": "Género no encontrado" }
+
+Response 500:
+  { "message": "Error general" }
+
+================================================================================
+RESUMEN RÁPIDO PARA EL FRONT
+================================================================================
+
+GET     /api/v1/generos                 -> listar
+GET     /api/v1/generos/:id             -> detalle
+POST    /api/v1/generos/crear           -> crear
+PUT     /api/v1/generos/:id             -> actualizar
+PATCH   /api/v1/generos/estado/:id      -> habilitar/deshabilitar
+DELETE  /api/v1/generos/:id             -> borrar
+
+Headers recomendados en requests con body:
+  Content-Type: application/json
+
+Ejemplo fetch crear:
+  fetch('http://localhost:5000/api/v1/generos/crear', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      nombre: 'Comedia',
+      estado: true,
+      descripcion: 'Películas cómicas'
+    })
+  })
+
+================================================================================
+FIN DEL DOCUMENTO
+================================================================================
