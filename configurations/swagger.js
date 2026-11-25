@@ -5,8 +5,8 @@ const options = {
         openapi: '3.0.0',
         info: {
             title: 'API REST Películas Pascualinas',
-            version: '1.0.0',
-            description: 'Documentación de la API de géneros y películas'
+            version: '1.1.0',
+            description: 'API de géneros y películas con autenticación JWT (roles: admin, operario)'
         },
         servers: [
             {
@@ -15,7 +15,104 @@ const options = {
             }
         ],
         components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: 'http',
+                    scheme: 'bearer',
+                    bearerFormat: 'JWT',
+                    description: 'Pegue el token JWT obtenido en /api/v1/auth/login'
+                }
+            },
             schemas: {
+                Usuario: {
+                    type: 'object',
+                    properties: {
+                        _id: {
+                            type: 'string',
+                            example: '65f1c2a9b8e4d12a34f56789'
+                        },
+                        nombre: {
+                            type: 'string',
+                            example: 'Ana Admin'
+                        },
+                        email: {
+                            type: 'string',
+                            example: 'admin@pascualinas.com'
+                        },
+                        rol: {
+                            type: 'string',
+                            enum: ['admin', 'operario'],
+                            example: 'admin'
+                        },
+                        estado: {
+                            type: 'boolean',
+                            example: true
+                        },
+                        fechaCreacion: {
+                            type: 'string',
+                            format: 'date-time'
+                        },
+                        fechaActualizacion: {
+                            type: 'string',
+                            format: 'date-time'
+                        }
+                    }
+                },
+                AuthLoginInput: {
+                    type: 'object',
+                    required: ['email', 'password'],
+                    properties: {
+                        email: {
+                            type: 'string',
+                            example: 'admin@pascualinas.com'
+                        },
+                        password: {
+                            type: 'string',
+                            example: 'Admin123'
+                        }
+                    }
+                },
+                AuthRegisterInput: {
+                    type: 'object',
+                    required: ['nombre', 'email', 'password'],
+                    properties: {
+                        nombre: {
+                            type: 'string',
+                            example: 'Pedro Operario'
+                        },
+                        email: {
+                            type: 'string',
+                            example: 'operario@pascualinas.com'
+                        },
+                        password: {
+                            type: 'string',
+                            minLength: 6,
+                            example: 'Operario123'
+                        },
+                        rol: {
+                            type: 'string',
+                            enum: ['admin', 'operario'],
+                            example: 'operario',
+                            description: 'Solo admin autenticado puede enviar rol=admin'
+                        }
+                    }
+                },
+                AuthResponse: {
+                    type: 'object',
+                    properties: {
+                        message: {
+                            type: 'string',
+                            example: 'Login exitoso'
+                        },
+                        token: {
+                            type: 'string',
+                            example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...'
+                        },
+                        usuario: {
+                            $ref: '#/components/schemas/Usuario'
+                        }
+                    }
+                },
                 Genero: {
                     type: 'object',
                     properties: {

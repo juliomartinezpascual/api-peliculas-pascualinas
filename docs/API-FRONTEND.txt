@@ -7,7 +7,45 @@ Base URL:        http://localhost:5000
 Prefijo API:     /api/v1
 Swagger UI:      http://localhost:5000/api/docs
 Content-Type:    application/json
-Auth:            No requiere autenticación (por ahora)
+Auth:            JWT Bearer (Authorization: Bearer <token>)
+
+--------------------------------------------------------------------------------
+ROLES Y PERMISOS
+--------------------------------------------------------------------------------
+
+Roles:
+  admin     -> puede realizar CUALQUIER operación
+  operario  -> solo puede CONSULTAR (GET) y CREAR (POST)
+
+Matriz sobre /api/v1/generos:
+
+  Método   Ruta                      admin   operario
+  -------  ------------------------  ------  --------
+  GET      /generos                  sí      sí
+  GET      /generos/:id              sí      sí
+  POST     /generos/crear            sí      sí
+  PUT      /generos/:id              sí      no (403)
+  PATCH    /generos/estado/:id       sí      no (403)
+  DELETE   /generos/:id              sí      no (403)
+
+Errores de auth comunes:
+  401  { "message": "Token no proporcionado..." } | "Token inválido" | "Token expirado"
+  403  { "message": "Acceso denegado. Se requiere rol: admin" }
+
+Header obligatorio en endpoints protegidos:
+  Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+--------------------------------------------------------------------------------
+MODELO: Usuario (respuesta sin password)
+--------------------------------------------------------------------------------
+
+  _id                 string
+  nombre              string
+  email               string
+  rol                 "admin" | "operario"
+  estado              boolean
+  fechaCreacion       date
+  fechaActualizacion  date (opcional)
 
 --------------------------------------------------------------------------------
 MODELO: Genero
@@ -27,8 +65,121 @@ Formato de error genérico:
   }
 
 ================================================================================
+MÓDULO: AUTH
+Base path: /api/v1/auth
+================================================================================
+
+--------------------------------------------------------------------------------
+0) BOOTSTRAP ADMIN (solo la primera vez)
+--------------------------------------------------------------------------------
+Método:  POST
+URL:     /api/v1/auth/bootstrap-admin
+Auth:    No
+
+Cuándo usarlo:
+  - Solo funciona si NO existe ningún usuario en la BD.
+  - Crea el primer admin y devuelve JWT.
+
+Body:
+  {
+    "nombre": "Ana Admin",
+    "email": "admin@pascualinas.com",
+    "password": "Admin123"
+  }
+
+Response 201:
+  {
+    "message": "Admin inicial creado",
+    "token": "<JWT>",
+    "usuario": { ...sin password... }
+  }
+
+Response 403:
+  { "message": "Ya existen usuarios. Use /register o pida a un admin que cree cuentas." }
+
+--------------------------------------------------------------------------------
+1) LOGIN
+--------------------------------------------------------------------------------
+Método:  POST
+URL:     /api/v1/auth/login
+Auth:    No
+
+Body:
+  {
+    "email": "admin@pascualinas.com",
+    "password": "Admin123"
+  }
+
+Response 200:
+  {
+    "message": "Login exitoso",
+    "token": "<JWT>",
+    "usuario": {
+      "_id": "...",
+      "nombre": "Ana Admin",
+      "email": "admin@pascualinas.com",
+      "rol": "admin",
+      "estado": true,
+      "fechaCreacion": "..."
+    }
+  }
+
+Response 401:
+  { "message": "Credenciales inválidas" }
+
+Notas frontend:
+  - Guardar el token (memory / localStorage / cookie según política).
+  - Enviar en cada request protegido: Authorization: Bearer <token>
+  - Si llega 401, redirigir a login / renovar sesión.
+
+--------------------------------------------------------------------------------
+2) REGISTER
+--------------------------------------------------------------------------------
+Método:  POST
+URL:     /api/v1/auth/register
+Auth:    Opcional (requerido solo si se quiere crear un admin)
+
+Body (operario — público):
+  {
+    "nombre": "Pedro Operario",
+    "email": "operario@pascualinas.com",
+    "password": "Operario123"
+  }
+
+Body (admin — requiere Bearer de un admin):
+  {
+    "nombre": "Otro Admin",
+    "email": "admin2@pascualinas.com",
+    "password": "Admin123",
+    "rol": "admin"
+  }
+
+Response 201:
+  {
+    "message": "Usuario registrado",
+    "token": "<JWT>",
+    "usuario": { ... }
+  }
+
+Response 400:
+  { "message": "Ya existe un usuario con ese email" }
+
+Response 403:
+  { "message": "Solo un admin autenticado puede crear usuarios admin" }
+
+--------------------------------------------------------------------------------
+3) ME (usuario actual)
+--------------------------------------------------------------------------------
+Método:  GET
+URL:     /api/v1/auth/me
+Auth:    Bearer requerido
+
+Response 200: objeto Usuario
+
+================================================================================
 MÓDULO: GÉNEROS
 Base path: /api/v1/generos
+Auth:      Bearer requerido en TODOS los endpoints
 ================================================================================
 
 --------------------------------------------------------------------------------
@@ -36,229 +187,122 @@ Base path: /api/v1/generos
 --------------------------------------------------------------------------------
 Método:  GET
 URL:     /api/v1/generos
+Roles:   admin, operario
 
-Request:
-  Sin body
-  Sin query params
-
-Response 200:
-  [
-    {
-      "_id": "65f1c2a9b8e4d12a34f56789",
-      "nombre": "Acción",
-      "estado": true,
-      "descripcion": "Películas de acción",
-      "fechaCreacion": "2026-03-11T12:00:00.000Z",
-      "fechaActualizacion": null
-    }
-  ]
-
-Response 500:
-  { "message": "Error general" }
+Response 200: array de Genero
+Response 500: { "message": "Error general" }
 
 --------------------------------------------------------------------------------
 2) CONSULTAR GÉNERO POR ID
 --------------------------------------------------------------------------------
 Método:  GET
 URL:     /api/v1/generos/:id
+Roles:   admin, operario
 
-Params:
-  id  string  requerido  ObjectId del género
-
-Request:
-  Sin body
-
-Response 200:
-  {
-    "_id": "65f1c2a9b8e4d12a34f56789",
-    "nombre": "Acción",
-    "estado": true,
-    "descripcion": "Películas de acción",
-    "fechaCreacion": "2026-03-11T12:00:00.000Z",
-    "fechaActualizacion": null
-  }
-
-Response 400:
-  { "message": "Cast to ObjectId failed..." }
-
-Response 404:
-  { "message": "Género no encontrado" }
-
-Response 500:
-  { "message": "Error general" }
+Response 200: Genero
+Response 400 / 404 / 500: { "message": "..." }
 
 --------------------------------------------------------------------------------
 3) CREAR GÉNERO
 --------------------------------------------------------------------------------
 Método:  POST
 URL:     /api/v1/generos/crear
+Roles:   admin, operario
 
-Body (JSON):
+Body:
   {
-    "nombre": "Acción",          // requerido, string, min 2, único
-    "estado": true,              // opcional, boolean (default true)
-    "descripcion": "Opcional"    // opcional, string
-  }
-
-Response 201:
-  {
-    "_id": "65f1c2a9b8e4d12a34f56789",
     "nombre": "Acción",
     "estado": true,
-    "descripcion": "Opcional",
-    "fechaCreacion": "2026-03-11T12:00:00.000Z",
-    "__v": 0
+    "descripcion": "Opcional"
   }
 
-Response 400:
-  { "message": "Ya existe este género" }
-  o mensaje de validación de Mongoose
-
-Response 500:
-  { "message": "Error general" }
+Response 201: Genero
+Response 400 / 500: { "message": "..." }
 
 --------------------------------------------------------------------------------
 4) ACTUALIZAR GÉNERO
 --------------------------------------------------------------------------------
 Método:  PUT
 URL:     /api/v1/generos/:id
+Roles:   solo admin
 
-Params:
-  id  string  requerido  ObjectId del género
-
-Body (JSON):
+Body:
   {
     "nombre": "Acción actualizada",
     "estado": true,
     "descripcion": "Nueva descripción"
   }
 
-Notas frontend:
-  - Se actualizan nombre, estado y descripcion
-  - El backend setea fechaActualizacion automáticamente
-
-Response 201:
-  {
-    "_id": "65f1c2a9b8e4d12a34f56789",
-    "nombre": "Acción actualizada",
-    "estado": true,
-    "descripcion": "Nueva descripción",
-    "fechaCreacion": "2026-03-11T12:00:00.000Z",
-    "fechaActualizacion": "2026-03-11T13:00:00.000Z"
-  }
-
-Response 400:
-  { "message": "Ya existe este género" }
-  o mensaje de validación / CastError
-
-Response 404:
-  { "message": "Género no encontrado" }
-
-Response 500:
-  { "message": "Error general" }
+Response 201: Genero
+Response 403 (operario): { "message": "Acceso denegado. Se requiere rol: admin" }
 
 --------------------------------------------------------------------------------
 5) HABILITAR / DESHABILITAR GÉNERO
 --------------------------------------------------------------------------------
 Método:  PATCH
 URL:     /api/v1/generos/estado/:id
+Roles:   solo admin
 
-Params:
-  id  string  requerido  ObjectId del género
+Body:
+  { "estado": true }   // o false
 
-Body (JSON):
-  {
-    "estado": true     // habilitar
-  }
-  o
-  {
-    "estado": false    // deshabilitar
-  }
-
-Importante:
-  - estado DEBE ser boolean (true/false), no string
-
-Response 200:
-  {
-    "_id": "65f1c2a9b8e4d12a34f56789",
-    "nombre": "Acción",
-    "estado": false,
-    "descripcion": "Películas de acción",
-    "fechaCreacion": "2026-03-11T12:00:00.000Z",
-    "fechaActualizacion": "2026-03-11T13:00:00.000Z"
-  }
-
-Response 400:
-  { "message": "El campo estado debe ser true o false" }
-  o CastError si el id es inválido
-
-Response 404:
-  { "message": "Género no encontrado" }
-
-Response 500:
-  { "message": "Error general" }
+Response 200: Genero
+Response 403 (operario): denegado
 
 --------------------------------------------------------------------------------
 6) BORRAR GÉNERO
 --------------------------------------------------------------------------------
 Método:  DELETE
 URL:     /api/v1/generos/:id
+Roles:   solo admin
 
-Params:
-  id  string  requerido  ObjectId del género
-
-Request:
-  Sin body
-
-Response 204:
-  {
-    "message": "Género eliminado",
-    "genero": {
-      "_id": "65f1c2a9b8e4d12a34f56789",
-      "nombre": "Acción",
-      "estado": true,
-      "descripcion": "Películas de acción",
-      "fechaCreacion": "2026-03-11T12:00:00.000Z"
-    }
-  }
-
-Nota frontend:
-  - El status es 204. Algunos clientes HTTP no exponen body en 204.
-    Si necesitas el objeto borrado en UI, valida el manejo del response.
-
-Response 400:
-  { "message": "Cast to ObjectId failed..." }
-
-Response 404:
-  { "message": "Género no encontrado" }
-
-Response 500:
-  { "message": "Error general" }
+Response 204: body con message + genero (ojo: algunos clientes no leen body en 204)
+Response 403 (operario): denegado
 
 ================================================================================
-RESUMEN RÁPIDO PARA EL FRONT
+EJEMPLOS FRONT
 ================================================================================
 
-GET     /api/v1/generos                 -> listar
-GET     /api/v1/generos/:id             -> detalle
-POST    /api/v1/generos/crear           -> crear
-PUT     /api/v1/generos/:id             -> actualizar
-PATCH   /api/v1/generos/estado/:id      -> habilitar/deshabilitar
-DELETE  /api/v1/generos/:id             -> borrar
-
-Headers recomendados en requests con body:
-  Content-Type: application/json
-
-Ejemplo fetch crear:
-  fetch('http://localhost:5000/api/v1/generos/crear', {
+1) Login y guardar token:
+  const res = await fetch('http://localhost:5000/api/v1/auth/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email: 'admin@pascualinas.com',
+      password: 'Admin123'
+    })
+  })
+  const data = await res.json()
+  localStorage.setItem('token', data.token)
+
+2) Llamada autenticada:
+  const token = localStorage.getItem('token')
+  fetch('http://localhost:5000/api/v1/generos', {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  })
+
+3) Crear género (admin u operario):
+  fetch('http://localhost:5000/api/v1/generos/crear', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
     body: JSON.stringify({
       nombre: 'Comedia',
       estado: true,
       descripcion: 'Películas cómicas'
     })
   })
+
+Variables de entorno del backend (.env):
+  MONGO_URI=...
+  JWT_SECRET=cambia_este_secreto_por_uno_largo_y_seguro
+  JWT_EXPIRES_IN=8h
+  PORT=5000
 
 ================================================================================
 FIN DEL DOCUMENTO

@@ -1,5 +1,6 @@
 const { Router } = require('express')
 const { getGeneros, getGeneroById, crearGenero, actualizarGenero, cambiarEstadoGenero, borrarGenero } = require('../controllers/generoController')
+const { verificarToken, authorize } = require('../middlewares/auth')
 
 const router = Router()
 
@@ -7,7 +8,7 @@ const router = Router()
  * @swagger
  * tags:
  *   name: Generos
- *   description: Endpoints para gestión de géneros
+ *   description: Endpoints para gestión de géneros (requieren JWT)
  */
 
 /**
@@ -16,6 +17,8 @@ const router = Router()
  *   get:
  *     summary: Listar todos los géneros
  *     tags: [Generos]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Lista de géneros
@@ -25,6 +28,18 @@ const router = Router()
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Genero'
+ *       401:
+ *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Sin permiso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error general
  *         content:
@@ -32,7 +47,7 @@ const router = Router()
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/', getGeneros)
+router.get('/', verificarToken, authorize('admin', 'operario'), getGeneros)
 
 /**
  * @swagger
@@ -40,6 +55,8 @@ router.get('/', getGeneros)
  *   get:
  *     summary: Consultar género por ID
  *     tags: [Generos]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -60,6 +77,18 @@ router.get('/', getGeneros)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Sin permiso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Género no encontrado
  *         content:
@@ -73,7 +102,7 @@ router.get('/', getGeneros)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get('/:id', getGeneroById)
+router.get('/:id', verificarToken, authorize('admin', 'operario'), getGeneroById)
 
 /**
  * @swagger
@@ -81,6 +110,8 @@ router.get('/:id', getGeneroById)
  *   post:
  *     summary: Crear un género
  *     tags: [Generos]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -100,6 +131,18 @@ router.get('/:id', getGeneroById)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Sin permiso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Error general
  *         content:
@@ -107,14 +150,16 @@ router.get('/:id', getGeneroById)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.post('/crear', crearGenero)
+router.post('/crear', verificarToken, authorize('admin', 'operario'), crearGenero)
 
 /**
  * @swagger
  * /api/v1/generos/{id}:
  *   put:
- *     summary: Actualizar un género
+ *     summary: Actualizar un género (solo admin)
  *     tags: [Generos]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -141,6 +186,18 @@ router.post('/crear', crearGenero)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Sin permiso (solo admin)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Género no encontrado
  *         content:
@@ -154,14 +211,16 @@ router.post('/crear', crearGenero)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.put('/:id', actualizarGenero)
+router.put('/:id', verificarToken, authorize('admin'), actualizarGenero)
 
 /**
  * @swagger
  * /api/v1/generos/estado/{id}:
  *   patch:
- *     summary: Habilitar o deshabilitar un género
+ *     summary: Habilitar o deshabilitar un género (solo admin)
  *     tags: [Generos]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -188,6 +247,18 @@ router.put('/:id', actualizarGenero)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Sin permiso (solo admin)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Género no encontrado
  *         content:
@@ -201,14 +272,16 @@ router.put('/:id', actualizarGenero)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.patch('/estado/:id', cambiarEstadoGenero)
+router.patch('/estado/:id', verificarToken, authorize('admin'), cambiarEstadoGenero)
 
 /**
  * @swagger
  * /api/v1/generos/{id}:
  *   delete:
- *     summary: Borrar un género por ID
+ *     summary: Borrar un género por ID (solo admin)
  *     tags: [Generos]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -235,6 +308,18 @@ router.patch('/estado/:id', cambiarEstadoGenero)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: No autenticado
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       403:
+ *         description: Sin permiso (solo admin)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: Género no encontrado
  *         content:
@@ -248,6 +333,6 @@ router.patch('/estado/:id', cambiarEstadoGenero)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.delete('/:id', borrarGenero)
+router.delete('/:id', verificarToken, authorize('admin'), borrarGenero)
 
 module.exports = router

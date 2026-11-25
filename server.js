@@ -5,6 +5,7 @@ require('dotenv').config()
 
 
 const generoRoutes = require('./routes/generoRoutes')
+const authRoutes = require('./routes/authRoutes')
 const { mongoConnect } = require('./configurations/database')
 const { swaggerSpec } = require('./configurations/swagger')
 
@@ -12,9 +13,8 @@ mongoConnect()
 
 const app = express()
 
-
 // asignar puerto
-app.set('port', 5000)
+app.set('port', process.env.PORT || 5000)
 
 // middlewares
 app.use((req, res, next) => {
@@ -32,10 +32,11 @@ app.use((req, res, next) => {
 })
 app.use(json())
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
-app.use('/api/v1/generos', generoRoutes);
+app.use('/api/v1/auth', authRoutes)
+app.use('/api/v1/generos', generoRoutes)
 
 // arrancar el servidor en el puerto
 app.listen(app.get('port'), () => {
-    console.log ("Servidor arriba en el puerto: " + app.get('port'))
+    console.log('Servidor arriba en el puerto: ' + app.get('port'))
     console.log('Swagger UI: http://localhost:' + app.get('port') + '/api/docs')
 })
